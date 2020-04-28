@@ -1,0 +1,202 @@
+#!/usr/libexec/atf-sh
+#
+# blacklistd tests
+
+. $(atf_get_srcdir)/utils.subr
+. $(atf_get_srcdir)/runner.subr
+
+v4_head()
+{
+	atf_set require.user root
+}
+
+v4_body()
+{
+	firewall=$1
+	firewall_init $firewall
+
+	epair=$(vnet_mkepair)
+	ifconfig ${epair}a 192.0.2.1/24 up
+
+	vnet_mkjail iron ${epair}b
+	jexec iron ifconfig ${epair}b 192.0.2.2/24 up
+
+	# spoof blacklistd firewall detection
+	case "$firewall" in
+	ipfw)
+		jexec iron touch /etc/ipfw-blacklist.rc
+		;;
+	pf)
+		jexec iron touch /etc/pf.conf
+		;;
+	ipf)
+		jexec iron touch /etc/ipf.conf
+		;;
+	esac
+
+	firewall_config "iron" ${firewall} \
+		"pf" \
+			"anchor \"blacklistd/*\" in on ${epair}b" \
+			"pass in" \
+		"ipfw" \
+			"ipfw -q add 65000 allow all from any to any" \
+		"ipf" \
+			"pass in all"
+
+	# configure SSHd to use blacklistd
+	jexec iron /usr/sbin/sshd -4 -o UseBlacklist=yes \
+		-o ChallengeResponseAuthentication=no
+
+	# start blacklistd
+	jexec iron /usr/sbin/blacklistd -r -t 1
+
+	# start 3 failed SSH attempts
+	for i in $(jot 3); do
+		atf_check -s exit:255 -e match:"Permission denied" \
+			ssh -4 -i /etc/ssh/ssh_host_rsa_key \
+				-o StrictHostKeyChecking=no \
+				invalid${i}@192.0.2.2
+	done
+
+	# allow blacklistd to poll
+	sleep 2
+
+	# it should be blacklisted
+	atf_check -s exit:0 -o match:"3/3" \
+		jexec iron blacklistctl dump -nb
+
+	# it can not SSH the jail
+	atf_check -s exit:124 \
+		timeout 1 ssh -4 -i /etc/ssh/ssh_host_rsa_key \
+			-o StrictHostKeyChecking=no \
+			blacklisted@192.0.2.2
+}
+
+v4_cleanup()
+{
+	firewall=$1
+
+	# NB: This is a destructive process!
+	#     It is needed because otherwise the database
+	#     and sentinel files will remain in the host.
+	pkill -F /var/run/blacklistd.pid
+	rm /var/db/blacklistd.db
+	rm /var/run/blacklistd.sock
+	case "$firewall" in
+	ipfw)
+		jexec iron rm /etc/ipfw-blacklist.rc
+		;;
+	pf)
+		jexec iron rm /etc/pf.conf
+		;;
+	ipf)
+		jexec iron rm /etc/ipf.conf
+		;;
+	esac
+
+	firewall_cleanup $firewall
+}
+
+v6_head()
+{
+	atf_set require.user root
+}
+
+v6_body()
+{
+	firewall=$1
+	firewall_init $firewall
+
+	epair=$(vnet_mkepair)
+	# XXX if the interface is configured here, IPv6 will not start
+	# on epair0a (IFDISABLED). Configure it after the jail is created.
+	#ifconfig ${epair}a inet6 fd7a:803f:cc4b::1/64 up no_dad
+
+	vnet_mkjail iron ${epair}b
+	ifconfig ${epair}a inet6 fd7a:803f:cc4b::1/64 up no_dad
+	jexec iron ifconfig ${epair}b inet6 fd7a:803f:cc4b::2/64 up no_dad
+
+	# spoof blacklistd firewall detection
+	case "$firewall" in
+	ipfw)
+		jexec iron touch /etc/ipfw-blacklist.rc
+		;;
+	pf)
+		jexec iron touch /etc/pf.conf
+		;;
+	ipf)
+		jexec iron touch /etc/ipf.conf
+		;;
+	esac
+
+	firewall_config "iron" ${firewall} \
+		"pf" \
+			"anchor \"blacklistd/*\" in on ${epair}b" \
+			"pass in" \
+		"ipfw" \
+			"ipfw -q add 65000 allow all from any to any" \
+		"ipf" \
+			"pass in all"
+
+	# configure SSHd to use blacklistd
+	jexec iron /usr/sbin/sshd -6 -o UseBlacklist=yes \
+		-o ChallengeResponseAuthentication=no
+
+	# start blacklistd
+	jexec iron /usr/sbin/blacklistd -r -t 1
+
+	# start 3 failed SSH attempts
+	for i in $(jot 3); do
+		atf_check -s exit:255 -e match:"Permission denied" \
+			ssh -6 -i /etc/ssh/ssh_host_rsa_key \
+				-o StrictHostKeyChecking=no \
+				invalid${i}@fd7a:803f:cc4b::2
+	done
+
+	# allow blacklistd to poll
+	sleep 2
+
+	# it should be blacklisted
+	atf_check -s exit:0 -o match:"3/3" \
+		jexec iron blacklistctl dump -nb
+
+	# it can not SSH the jail
+	atf_check -s exit:124 \
+		timeout 1 ssh -6 -i /etc/ssh/ssh_host_rsa_key \
+			-o StrictHostKeyChecking=no \
+			blacklisted@fd7a:803f:cc4b::2
+}
+
+v6_cleanup()
+{
+	firewall=$1
+
+	# NB: This is a destructive process!
+	#     It is needed because otherwise the database
+	#     and sentinel files will remain in the host.
+	pkill -F /var/run/blacklistd.pid
+	rm /var/db/blacklistd.db
+	rm /var/run/blacklistd.sock
+	case "$firewall" in
+	ipfw)
+		jexec iron rm /etc/ipfw-blacklist.rc
+		;;
+	pf)
+		jexec iron rm /etc/pf.conf
+		;;
+	ipf)
+		jexec iron rm /etc/ipf.conf
+		;;
+	esac
+
+	firewall_cleanup $firewall
+}
+
+setup_tests "v4" \
+				"pf" \
+				"ipfw" \
+				"ipf" \
+			"v6" \
+				"pf" \
+				"ipfw" \
+				"ipf"

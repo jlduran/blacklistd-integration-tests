@@ -1,0 +1,7 @@
+-- blacklistd Testing Framework
+
+syntax(2)
+
+test_suite("blacklistd")
+
+atf_test_program{name="ssh_integration", }
