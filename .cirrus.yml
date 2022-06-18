@@ -2,7 +2,7 @@ freebsd_instance:
   image_family: freebsd-14-0-snap
 
 run_tests_task:
-  install_packages_script: pkg install -y kyua
+  #install_packages_script: pkg install -y kyua
   #load_modules_script: kldload -nqv if_epair ipfilter ipfw ipfw_nat pf
   # net.inet.ip.fw.default_to_accept is read-only
   #configure_ipfw_script: ipfw -q add 65534 allow ip from any to any
