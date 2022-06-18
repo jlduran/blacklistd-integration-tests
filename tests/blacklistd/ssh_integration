@@ -45,7 +45,7 @@ v4_body()
 
 	# configure SSHd to use blacklistd
 	jexec iron /usr/sbin/sshd -4 -o UseBlacklist=yes \
-		-o ChallengeResponseAuthentication=no
+		-o KbdInteractiveAuthentication=no
 
 	# start blacklistd
 	jexec iron /usr/sbin/blacklistd -r -t 1
@@ -140,7 +140,7 @@ v6_body()
 
 	# configure SSHd to use blacklistd
 	jexec iron /usr/sbin/sshd -6 -o UseBlacklist=yes \
-		-o ChallengeResponseAuthentication=no
+		-o KbdInteractiveAuthentication=no
 
 	# start blacklistd
 	jexec iron /usr/sbin/blacklistd -r -t 1
