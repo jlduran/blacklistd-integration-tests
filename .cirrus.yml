@@ -1,5 +1,5 @@
 freebsd_instance:
-  image_family: freebsd-12-1
+  image_family: freebsd-14-0-snap
 
 run_tests_task:
   install_packages_script: pkg install -y kyua
