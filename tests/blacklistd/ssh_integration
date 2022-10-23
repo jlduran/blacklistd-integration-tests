@@ -45,10 +45,16 @@ v4_body()
 
 	# configure SSHd to use blacklistd
 	jexec iron /usr/sbin/sshd -4 -o UseBlacklist=yes \
+		-o AuthorizedKeysFile=/etc/ssh/ssh_host_ed25519_key.pub
 		-o KbdInteractiveAuthentication=no
 
 	# start blacklistd
 	jexec iron /usr/sbin/blacklistd -r -t 1
+
+	# check that it works
+	atf_check ssh -4 -i /etc/ssh/ssh_host_ed25519_key \
+			-o StrictHostKeyChecking=no \
+			192.0.2.2
 
 	# start 3 failed SSH attempts
 	for i in $(jot 3); do
@@ -140,10 +146,16 @@ v6_body()
 
 	# configure SSHd to use blacklistd
 	jexec iron /usr/sbin/sshd -6 -o UseBlacklist=yes \
+		-o AuthorizedKeysFile=/etc/ssh/ssh_host_ed25519_key.pub
 		-o KbdInteractiveAuthentication=no
 
 	# start blacklistd
 	jexec iron /usr/sbin/blacklistd -r -t 1
+
+	# check that it works
+	atf_check ssh -6 -i /etc/ssh/ssh_host_ed25519_key \
+			-o StrictHostKeyChecking=no \
+			fd7a:803f:cc4b::2
 
 	# start 3 failed SSH attempts
 	for i in $(jot 3); do
