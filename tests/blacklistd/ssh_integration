@@ -30,7 +30,8 @@ v4_body()
 		jexec iron touch /etc/pf.conf
 		;;
 	ipf)
-		jexec iron touch /etc/ipf.conf
+		# XXX ipf.conf(5) vs. ipf.rules?
+		jexec iron touch /etc/ipf.rules
 		;;
 	esac
 
@@ -96,7 +97,8 @@ v4_cleanup()
 		jexec iron rm /etc/pf.conf
 		;;
 	ipf)
-		jexec iron rm /etc/ipf.conf
+		# XXX ipf.conf(5) vs. ipf.rules?
+		jexec iron rm /etc/ipf.rules
 		;;
 	esac
 
@@ -131,7 +133,8 @@ v6_body()
 		jexec iron touch /etc/pf.conf
 		;;
 	ipf)
-		jexec iron touch /etc/ipf.conf
+		# XXX ipf.conf(5) vs. ipf.rules?
+		jexec iron touch /etc/ipf.rules
 		;;
 	esac
 
@@ -197,7 +200,8 @@ v6_cleanup()
 		jexec iron rm /etc/pf.conf
 		;;
 	ipf)
-		jexec iron rm /etc/ipf.conf
+		# XXX ipf.conf(5) vs. ipf.rules?
+		jexec iron rm /etc/ipf.rules
 		;;
 	esac
 
